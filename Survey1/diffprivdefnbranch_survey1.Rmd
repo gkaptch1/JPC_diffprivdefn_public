@@ -1,0 +1,708 @@
+---
+ggtitle: "DiffPrivDefns-Survey1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(readr)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(RColorBrewer)
+library(gdata)
+library(Hmisc)
+library(jtools)
+library(devtools)
+library(fastDummies)
+library(corrplot)
+library(Rfast)
+library(jsonlite)
+library(forcats)
+library(survey)
+library(tidyverse)
+# The following package is available at https://github.com/seankross/toffee
+library(toffee)
+library(ggstance)
+library(psy) 
+library(viridis)
+library(plotly)
+library(xtable)
+library(interplot)
+library(psych)
+library(ggeffects)
+library(srvyr)
+library(plyr)
+library(stringr)
+library(xtable)
+library(knitr)
+
+select <- dplyr::select
+mutate <- dplyr::mutate
+rename <- dplyr::rename
+```
+
+```{r loading_data}
+salarydata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey1/salary_data_min.csv")
+meddata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey1/med_data_min.csv")
+```
+
+```{r cleaning}
+salarydata = salarydata[-1,]
+salarydata = salarydata[-1,]
+meddata = meddata[-1,]
+meddata = meddata[-1,]
+
+salarydata = salarydata %>% filter(Finished==TRUE)
+meddata = meddata %>% filter(Finished==TRUE)
+
+salarydata=salarydata %>% rename(consent=Q3,
+                     heardOfDP=Q42,
+                     personalDefnOfDP=Q43
+                     )
+
+salarydata=salarydata %>% rename(shareData=`Share-Data`,
+                                 whyShare=Q7,
+                                 whyNotShare=Q8,
+                                 whyUnsureShare=Q9)
+
+
+salarydata = salarydata %>% rename(adv_search=Q24_1,
+                                   pdf=Q24_2,
+                                   spyware=Q24_3,
+                                   wiki=Q24_4,
+                                   cache=Q24_5,
+                                   phishing=Q24_6)
+
+salarydata = salarydata %>% rename(gender=Q15)
+salarydata = salarydata %>% rename(birthyear=Q16)
+salarydata = salarydata %>% rename(race=Q17)
+salarydata = salarydata %>% rename(race_text=Q17_6_TEXT)
+salarydata = salarydata %>% rename(education=Q18)
+salarydata = salarydata %>% rename(background=Q20)
+salarydata = salarydata %>% rename(income=Q23)
+salarydata = salarydata %>% rename(othercares=`Want-to-know_7_TEXT`)
+
+
+meddata=meddata %>% rename(consent=Q3,
+                     heardOfDP=Q42,
+                     personalDefnOfDP=Q43)
+
+meddata=meddata %>% rename(shareData=Q63,
+                                 whyShare=Q65,
+                                 whyNotShare=Q67,
+                                 whyUnsureShare=Q69)
+
+meddata = meddata %>% rename(adv_search=Q24_1,
+                                   pdf=Q24_2,
+                                   spyware=Q24_3,
+                                   wiki=Q24_4,
+                                   cache=Q24_5,
+                                   phishing=Q24_6)
+
+meddata = meddata %>% rename(gender=Q15)
+meddata = meddata %>% rename(birthyear=Q16)
+meddata = meddata %>% rename(race=Q17)
+meddata = meddata %>% rename(race_text=Q17_6_TEXT)
+meddata = meddata %>% rename(education=Q18)
+meddata = meddata %>% rename(background=Q20)
+meddata = meddata %>% rename(income=Q23)
+meddata = meddata %>% rename(othercares=Q47_7_TEXT)
+
+salarydata=salarydata %>% mutate(isSalaryData = TRUE)
+meddata=meddata %>% mutate(isSalaryData = FALSE)
+
+salarydata = salarydata %>% filter((consent =="I agree"))
+meddata = meddata %>% filter((consent == "I agree"))
+
+```
+
+```{r cleaning2}
+
+#Recoding the name of this row to be clearer
+
+salarydata = salarydata %>% mutate(`org-risk` = case_when(is.na(`exact-risk`) ~ "DontCare",
+                                   str_detect(`exact-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`exact-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`exact-risk`, "same as") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+salarydata = salarydata %>% mutate(`hack-risk` = case_when(is.na(`hack-risk`) ~ "DontCare",
+                                   str_detect(`hack-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`hack-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`hack-risk`, "same as") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+salarydata = salarydata %>% mutate(`le-risk` = case_when(is.na(`le-risk`) ~ "DontCare",
+                                   str_detect(`le-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`le-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`le-risk`, "same as") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+salarydata = salarydata %>% mutate(`da-risk` = case_when(is.na(`da-risk`) ~ "DontCare",
+                                   str_detect(`da-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`da-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`da-risk`, "same as") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+salarydata = salarydata %>% mutate(`graph-risk` = case_when(is.na(`graph-risk`) ~ "DontCare",
+                                   str_detect(`graph-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`graph-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`graph-risk`, "same as") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+salarydata = salarydata %>% mutate(`share-risk` = case_when(is.na(`share-risk`) ~ "DontCare",
+                                   str_detect(`share-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`share-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`share-risk`, "same as") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+
+salarydata = salarydata %>% mutate(`org-care` = !`org-risk`%in%c("DontCare"))
+salarydata = salarydata %>% mutate(`hack-care` = !`hack-risk`%in%c("DontCare"))
+salarydata = salarydata %>% mutate(`le-care` = !`le-risk`%in%c("DontCare"))
+salarydata = salarydata %>% mutate(`da-care` = !`da-risk`%in%c("DontCare"))
+salarydata = salarydata %>% mutate(`graph-care` = !`graph-risk`%in%c("DontCare"))
+salarydata = salarydata %>% mutate(`share-care` = !`share-risk`%in%c("DontCare"))
+
+meddata = meddata %>% mutate(`org-risk` = case_when(is.na(`exact-risk`) ~ "DontCare",
+                                   str_detect(`exact-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`exact-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`exact-risk`, "the same") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+meddata = meddata %>% mutate(`hack-risk` = case_when(is.na(`hack-risk`) ~ "DontCare",
+                                   str_detect(`hack-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`hack-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`hack-risk`, "the same") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+meddata = meddata %>% mutate(`le-risk` = case_when(is.na(`le-risk`) ~ "DontCare",
+                                   str_detect(`le-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`le-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`le-risk`, "the same") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+meddata = meddata %>% mutate(`da-risk` = case_when(is.na(`da-risk`) ~ "DontCare",
+                                   str_detect(`da-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`da-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`da-risk`, "the same") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+meddata = meddata %>% mutate(`graph-risk` = case_when(is.na(`graph-risk`) ~ "DontCare",
+                                   str_detect(`graph-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`graph-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`graph-risk`, "the same") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+meddata = meddata %>% mutate(`share-risk` = case_when(is.na(`share-risk`) ~ "DontCare",
+                                   str_detect(`share-risk`, "will not") ~ "NoRisk",
+                                   str_detect(`share-risk`, "higher than") ~ "HighRisk",
+                                   str_detect(`share-risk`, "the same") ~ "LowRisk",
+                                   TRUE ~ "DontCare"
+                                   ))
+
+
+meddata = meddata %>% mutate(`org-care` = !`org-risk`%in%c("DontCare"))
+meddata = meddata %>% mutate(`hack-care` = !`hack-risk`%in%c("DontCare"))
+meddata = meddata %>% mutate(`le-care` = !`le-risk`%in%c("DontCare"))
+meddata = meddata %>% mutate(`da-care` = !`da-risk`%in%c("DontCare"))
+meddata = meddata %>% mutate(`graph-care` = !`graph-risk`%in%c("DontCare"))
+meddata = meddata %>% mutate(`share-care` = !`share-risk`%in%c("DontCare"))
+
+
+salarydata=salarydata %>% mutate (adv_search = case_when(adv_search %in% 1 ~as.numeric(1),
+                               adv_search %in% 2 ~as.numeric(2),
+                               adv_search %in% 3 ~as.numeric(3),
+                               adv_search %in% 4 ~as.numeric(4),
+                               adv_search %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (pdf = case_when(pdf %in% 1 ~as.numeric(1),
+                               pdf %in% 2 ~as.numeric(2),
+                               pdf %in% 3 ~as.numeric(3),
+                               pdf %in% 4 ~as.numeric(4),
+                               pdf %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (spyware = case_when(spyware %in% 1 ~as.numeric(1),
+                               spyware %in% 2 ~as.numeric(2),
+                               spyware %in% 3 ~as.numeric(3),
+                               spyware %in% 4 ~as.numeric(4),
+                               spyware %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (cache = case_when(cache %in% 1 ~as.numeric(1),
+                               cache %in% 2 ~as.numeric(2),
+                               cache %in% 3 ~as.numeric(3),
+                               cache %in% 4 ~as.numeric(4),
+                               cache %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (phishing = case_when(phishing %in% 1 ~as.numeric(1),
+                               phishing %in% 2 ~as.numeric(2),
+                               phishing %in% 3 ~as.numeric(3),
+                               phishing %in% 4 ~as.numeric(4),
+                               phishing %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate(internetscore = (adv_search + pdf + spyware + cache + phishing)/5)
+
+meddata = meddata %>% mutate (adv_search = case_when(adv_search %in% 1 ~as.numeric(1),
+                               adv_search %in% 2 ~as.numeric(2),
+                               adv_search %in% 3 ~as.numeric(3),
+                               adv_search %in% 4 ~as.numeric(4),
+                               adv_search %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (pdf = case_when(pdf %in% 1 ~as.numeric(1),
+                               pdf %in% 2 ~as.numeric(2),
+                               pdf %in% 3 ~as.numeric(3),
+                               pdf %in% 4 ~as.numeric(4),
+                               pdf %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (spyware = case_when(spyware %in% 1 ~as.numeric(1),
+                               spyware %in% 2 ~as.numeric(2),
+                               spyware %in% 3 ~as.numeric(3),
+                               spyware %in% 4 ~as.numeric(4),
+                               spyware %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (cache = case_when(cache %in% 1 ~as.numeric(1),
+                               cache %in% 2 ~as.numeric(2),
+                               cache %in% 3 ~as.numeric(3),
+                               cache %in% 4 ~as.numeric(4),
+                               cache %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (phishing = case_when(phishing %in% 1 ~as.numeric(1),
+                               phishing %in% 2 ~as.numeric(2),
+                               phishing %in% 3 ~as.numeric(3),
+                               phishing %in% 4 ~as.numeric(4),
+                               phishing %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate(internetscore = (adv_search + pdf + spyware + cache + phishing)/5)
+
+salarydata=salarydata %>% mutate(  woman = gender %in% c("Woman"),
+         man = gender %in% c("Man"),
+         hispanic = str_detect(race, "Hispanic"),
+         black = str_detect(race, "Black"),
+         white = str_detect(race, "White"),
+         firstNations = str_detect(race, "Indian"),
+         asian = str_detect(race, "Asian"),
+         lowSES = income <=3,
+         income50k = income <=5,
+         income_5cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-50K",
+                                 income == "$40,000 to under $50,000" ~ "30-50K",
+                                 income == "$50,000 to under $65,000" ~ "50-100K",
+                                 income == "$65,000 to under $80,000" ~ "50-100K",
+                                 income == "$80,000 to under $100,000" ~ "50-100K",
+                                 income == "$100,000 to under $125,000" ~ "100-200k",
+                                 income == "$125,000 to under $150,000" ~ "100-200k",
+                                 income ==  "$150,000 to under $200,000" ~ "100-200k",
+                                 income == "$200,000 or more" ~"200k+",
+                                 TRUE~as.character(NA)),
+         income_3cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-100K",
+                                 income == "$40,000 to under $50,000" ~ "30-100K",
+                                 income == "$50,000 to under $65,000" ~ "30-100K",
+                                 income == "$65,000 to under $80,000" ~ "30-100K",
+                                 income == "$80,000 to under $100,000" ~ "30-100K",
+                                 income == "$100,000 to under $125,000" ~ "100K+",
+                                 income == "$125,000 to under $150,000" ~ "100K+",
+                                 income ==  "$150,000 to under $200,000" ~ "100K+",
+                                 income == "$200,000 or more" ~ "100K+",
+                                 TRUE~as.character(NA)),
+         edu_3cat = relevel(factor(case_when(education %in% c("High school graduate (high school diploma or equivalent including GED)","Some high school credit, no diploma or equivalentLess than high school degree")~"HS",
+                              education %in% c("Some college but no degree","Associate's degree")~"SC",
+                              education %in% c("Bachelor's degree", "Advanced degree (e.g., Master's, doctorate)")~"BS+",
+                              TRUE~as.character(NA))), ref="HS"),
+         birthyear = as.numeric(birthyear))
+
+salarydata=salarydata %>% mutate(
+                      age = case_when(
+                        birthyear>=18 & birthyear<100 ~ birthyear,
+                        birthyear>1200 ~ 2020-as.numeric(birthyear),
+                        birthyear>800 & birthyear<1000 ~ 2020-(1000+as.numeric(birthyear)),
+                        TRUE ~ birthyear ) )
+
+meddata=meddata %>% mutate(  woman = gender %in% c("Woman"),
+         man = gender %in% c("Man"),
+         hispanic = str_detect(race, "Hispanic"),
+         black = str_detect(race, "Black"),
+         white = str_detect(race, "White"),
+         firstNations = str_detect(race, "Indian"),
+         asian = str_detect(race, "Asian"),
+         lowSES = income <=3,
+         income50k = income <=5,
+         income_5cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-50K",
+                                 income == "$40,000 to under $50,000" ~ "30-50K",
+                                 income == "$50,000 to under $65,000" ~ "50-100K",
+                                 income == "$65,000 to under $80,000" ~ "50-100K",
+                                 income == "$80,000 to under $100,000" ~ "50-100K",
+                                 income == "$100,000 to under $125,000" ~ "100-200k",
+                                 income == "$125,000 to under $150,000" ~ "100-200k",
+                                 income ==  "$150,000 to under $200,000" ~ "100-200k",
+                                 income == "$200,000 or more" ~"200k+",
+                                 TRUE~as.character(NA)),
+         income_3cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-100K",
+                                 income == "$40,000 to under $50,000" ~ "30-100K",
+                                 income == "$50,000 to under $65,000" ~ "30-100K",
+                                 income == "$65,000 to under $80,000" ~ "30-100K",
+                                 income == "$80,000 to under $100,000" ~ "30-100K",
+                                 income == "$100,000 to under $125,000" ~ "100K+",
+                                 income == "$125,000 to under $150,000" ~ "100K+",
+                                 income ==  "$150,000 to under $200,000" ~ "100K+",
+                                 income == "$200,000 or more" ~ "100K+",
+                                 TRUE~as.character(NA)),
+         edu_3cat = relevel(factor(case_when(education %in% c("High school graduate (high school diploma or equivalent including GED)","Some high school credit, no diploma or equivalentLess than high school degree")~"HS",
+                              education %in% c("Some college but no degree","Associate's degree")~"SC",
+                              education %in% c("Bachelor's degree", "Advanced degree (e.g., Master's, doctorate)")~"BS+",
+                              TRUE~as.character(NA))), ref="HS"),
+         birthyear = as.numeric(birthyear),
+         )
+
+meddata=meddata %>% mutate(
+                      age = case_when(
+                        birthyear>=18 & birthyear<100 ~ birthyear,
+                        birthyear>1200 ~ 2020-as.numeric(birthyear),
+                        birthyear>800 & birthyear<1000 ~ 2020-(1000+as.numeric(birthyear)),
+                        TRUE ~ birthyear ) )
+
+```
+
+```{r seperatingandmergingdatat}
+
+salarydata = salarydata %>% select(
+                          heardOfDP,
+                          personalDefnOfDP,
+                          shareData,
+                          `org-risk`,
+                          `hack-risk`,
+                          `le-risk`,
+                          `da-risk`,
+                          `graph-risk`,
+                          `share-risk`,
+                          `org-care`,
+                          `hack-care` ,
+                          `le-care` ,
+                          `da-care` ,
+                          `graph-care`,
+                          `share-care`,
+                          othercares,
+                          internetscore,
+                          gender,
+                          race,
+                          education,
+                          edu_3cat,
+                          income,
+                          income_5cat, 
+                          income_3cat,
+                          woman, 
+                          black, 
+                          white,
+                          hispanic,
+                          asian,
+                          firstNations,
+                          lowSES, 
+                          age,
+                          isSalaryData)
+
+meddata = meddata %>% select(
+                          heardOfDP,
+                          personalDefnOfDP,
+                          shareData,
+                          `org-risk`,
+                          `hack-risk`,
+                          `le-risk`,
+                          `da-risk`,
+                          `graph-risk`,
+                          `share-risk`,
+                          `org-care`,
+                          `hack-care` ,
+                          `le-care` ,
+                          `da-care` ,
+                          `graph-care`,
+                          `share-care`,
+                          othercares,
+                          internetscore,
+                          gender,
+                          race,
+                          education,
+                          edu_3cat,
+                          income,
+                          income_5cat,
+                          income_3cat,
+                          woman, 
+                          black, 
+                          white,
+                          hispanic,
+                          asian,
+                          firstNations,
+                          lowSES, 
+                          age,
+                          isSalaryData)
+
+mergeddata = rbind(salarydata, meddata)
+
+mergeddata = mergeddata %>% filter(!(is.na(shareData)))
+
+mergeddata <- within(mergeddata, `org-risk` <- relevel(as.factor(`org-risk`), ref="DontCare"))
+mergeddata <- within(mergeddata, `hack-risk` <- relevel(as.factor(`hack-risk`), ref="DontCare"))
+mergeddata <- within(mergeddata, `le-risk` <- relevel(as.factor(`le-risk`), ref="DontCare"))
+mergeddata <- within(mergeddata, `da-risk` <- relevel(as.factor(`da-risk`), ref="DontCare"))
+mergeddata <- within(mergeddata, `graph-risk` <- relevel(as.factor(`graph-risk`), ref="DontCare"))
+mergeddata <- within(mergeddata, `share-risk` <- relevel(as.factor(`share-risk`), ref="DontCare"))
+
+writetables = FALSE
+writetablespath = "~/Repos/~/Repos/JPC_diffprivdefn_public/results/Survey1/tables/"
+
+```
+
+
+```{r carespercentage}
+
+# Generates the results for Figure 1
+
+orgcarepercent = mergeddata %>%  select(`org-care`) 
+t.test(orgcarepercent)
+
+hackcarepercent = mergeddata %>%  select(`hack-care`) 
+t.test(hackcarepercent)
+
+lecarepercent = mergeddata %>%  select(`le-care`) 
+t.test(lecarepercent)
+
+dacarepercent = mergeddata %>%  select(`da-care`) 
+t.test(dacarepercent)
+
+graphcarepercent = mergeddata %>%  select(`graph-care`) 
+t.test(graphcarepercent)
+
+sharecarepercent = mergeddata %>%  select(`share-care`) 
+t.test(sharecarepercent)
+
+
+```
+
+
+```{r sharebyexpectations_alone}
+
+# Generates the results for Table 2
+
+#mergeddata <- within(mergeddata, `org-risk` <- relevel(as.factor(`org-risk`), ref="NoRisk"))
+#mergeddata <- within(mergeddata, `hack-risk` <- relevel(as.factor(`hack-risk`), ref="NoRisk"))
+#mergeddata <- within(mergeddata, `le-risk` <- relevel(as.factor(`le-risk`), ref="NoRisk"))
+#mergeddata <- within(mergeddata, `da-risk` <- relevel(as.factor(`da-risk`), ref="NoRisk"))
+#mergeddata <- within(mergeddata, `graph-risk` <- relevel(as.factor(`graph-risk`), ref="NoRisk"))
+#mergeddata <- within(mergeddata, `share-risk` <- relevel(as.factor(`share-risk`), ref="NoRisk"))
+
+org_risk_data = mergeddata %>% filter(!`org-risk`%in%c("DontCare"))
+
+merged_sharingbyorg = glm(shareData%in%c("Yes")~
+                      `org-risk` + isSalaryData + internetscore, #+ black + asian + hispanic +firstNations + woman  + age + edu_3cat + income_5cat,
+                      data=org_risk_data, # data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(merged_sharingbyorg)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_sharingbyorg)), file =paste(writetablespath,"sharingbyorg.tex",sep="") )
+}
+
+
+hack_risk_data = mergeddata %>% filter(!`hack-risk`%in%c("DontCare"))
+
+merged_sharingbyhack = glm(shareData%in%c("Yes")~
+                      `hack-risk` + isSalaryData + internetscore,# +black + asian + hispanic +firstNations + woman  + age+ edu_3cat + income_5cat,
+                      data=hack_risk_data, # data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(merged_sharingbyhack)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_sharingbyhack)), file =paste(writetablespath,"sharingbyhack.tex",sep="") )
+}
+
+le_risk_data = mergeddata %>% filter(!`le-risk`%in%c("DontCare"))
+
+merged_sharingbyle = glm(shareData%in%c("Yes")~
+                      `le-risk`+ isSalaryData + internetscore, #+black + asian + hispanic +firstNations + woman + age+ edu_3cat + income_5cat,
+                      data=le_risk_data, # data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(merged_sharingbyle)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_sharingbyle)), file =paste(writetablespath,"sharingbyle.tex",sep="") )
+}
+
+
+da_risk_data = mergeddata %>% filter(!`da-risk`%in%c("DontCare"))
+
+merged_sharingbyda = glm(shareData%in%c("Yes")~
+                      `da-risk`+ isSalaryData + internetscore, # +black + asian + hispanic +firstNations + woman  + age+ edu_3cat + income_5cat,
+                      data=da_risk_data, # data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(merged_sharingbyda)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_sharingbyda)), file =paste(writetablespath,"sharingbyda.tex",sep="") )
+}
+
+
+graph_risk_data = mergeddata %>% filter(!`graph-risk`%in%c("DontCare"))
+
+merged_sharingbygraph = glm(shareData%in%c("Yes")~
+                      `graph-risk`+ isSalaryData + internetscore, #+black + asian + hispanic +firstNations + woman + age+ edu_3cat + income_5cat,
+                      data=graph_risk_data, # data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(merged_sharingbygraph)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_sharingbygraph)), file =paste(writetablespath,"sharingbygraph.tex",sep="") )
+}
+
+share_risk_data = mergeddata %>% filter(!`share-risk`%in%c("DontCare"))
+
+merged_sharingbysharing = glm(shareData%in%c("Yes")~
+                      `share-risk`+ isSalaryData + internetscore, # +black + asian + hispanic +firstNations + woman + age+ edu_3cat + income_5cat,
+                      data=share_risk_data, # data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(merged_sharingbysharing)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_sharingbysharing)), file =paste(writetablespath,"sharingbysharing.tex",sep="") )
+}
+```
+
+
+```{r carebydemographics}
+
+# Demographic analysis not included in the paper
+
+corrdata = mergeddata %>% select(`org-care`, `hack-care`, `le-care`, `da-care`, `graph-care`, `share-care`)
+corrplot(corrdata)
+
+carebydemographicstable = glm(`org-care`~
+                      woman + black + asian + hispanic +firstNations + age + isSalaryData + internetscore+ edu_3cat + income_5cat,
+                      data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(carebydemographicstable)
+
+if(writetables) {
+  print(xtable(toffee_tbl(carebydemographicstable)), file =paste(writetablespath,"caringorgbydemos.tex",sep="") )
+}
+
+
+carebydemographicstable = glm(`hack-care`~
+                      woman + black + asian + hispanic +firstNations + age + isSalaryData + internetscore+ edu_3cat + income_5cat,
+                      data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(carebydemographicstable)
+
+if(writetables) {
+  print(xtable(toffee_tbl(carebydemographicstable)), file =paste(writetablespath,"caringhacksbydemos.tex",sep="") )
+}
+
+
+carebydemographicstable = glm(`le-care`~
+                      woman + black + asian + hispanic +firstNations + age + isSalaryData + internetscore+ edu_3cat + income_5cat,
+                      data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(carebydemographicstable)
+
+if(writetables) {
+  print(xtable(toffee_tbl(carebydemographicstable)), file =paste(writetablespath,"caringlebydemos.tex",sep="") )
+}
+
+
+carebydemographicstable = glm(`da-care`~
+                      woman + black + asian + hispanic +firstNations + age + isSalaryData + internetscore+ edu_3cat + income_5cat,
+                      data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(carebydemographicstable)
+
+if(writetables) {
+  print(xtable(toffee_tbl(carebydemographicstable)), file =paste(writetablespath,"caringdabydemos.tex",sep="") )
+}
+
+
+carebydemographicstable = glm(`graph-care`~
+                      woman + black + asian + hispanic +firstNations + age + isSalaryData + internetscore+ edu_3cat + income_5cat,
+                      data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(carebydemographicstable)
+
+if(writetables) {
+  print(xtable(toffee_tbl(carebydemographicstable)), file =paste(writetablespath,"caringgraphsbydemos.tex",sep="") )
+}
+
+
+carebydemographicstable = glm(`share-care`~
+                      woman + black + asian + hispanic +firstNations + age + isSalaryData + internetscore+ edu_3cat + income_5cat,
+                      data=mergeddata,
+                      family=binomial(),)
+toffee_tbl(carebydemographicstable)
+
+if(writetables) {
+  print(xtable(toffee_tbl(carebydemographicstable)), file =paste(writetablespath,"caringsharingbydemos.tex",sep="") )
+}
+
+```
+
+```{r demographics}
+
+# Generating results for Table 6 (Appendix demographics breakdown)
+
+racedata <- mergeddata %>% select(race, white, black, asian, firstNations, hispanic)
+sum(racedata$white)/nrow(racedata)
+sum(racedata$black)/nrow(racedata)
+sum(racedata$asian)/nrow(racedata)
+sum(racedata$firstNations)/nrow(racedata)
+sum(racedata$hispanic)/nrow(racedata)
+
+agedata = mergeddata %>% select(age) %>% filter(!is.na(age))
+
+mean(agedata$age)
+sd(agedata$age)
+
+incomedata = mergeddata %>% select(income)
+incomedata = incomedata %>% mutate(income = case_when(
+                                  income=="Less than $10,000"~5000,
+                                  income=="$10,000 to under $20,000"~15000,
+                                  income=="$20,000 to under $30,000"~25000,
+                                  income == "$30,000 to under $40,000" ~ 35000,
+                                  income == "$40,000 to under $50,000" ~ 45000,
+                                  income == "$50,000 to under $65,000" ~ 57500,
+                                  income == "$65,000 to under $80,000" ~ 72500,
+                                  income == "$80,000 to under $100,000" ~ 90000,
+                                  income == "$100,000 to under $125,000" ~ 112500,
+                                  income == "$125,000 to under $150,000" ~ 137500,
+                                  income ==  "$150,000 to under $200,000" ~ 175000,
+                                  income == "$200,000 or more" ~200000,
+                                  TRUE ~ 0))
+mean(incomedata$income)
+sd(incomedata$income)
+
+mean(mergeddata$internetscore)
+sd(mergeddata$internetscore)
+
+count(mergeddata$gender) %>% mutate(freq = freq/nrow(mergeddata))
+count(mergeddata$education) %>% mutate(freq = freq/ nrow(mergeddata))
+count(mergeddata$edu_3cat) %>% mutate(freq = freq/ nrow(mergeddata))
+count(mergeddata$income) %>% mutate(freq = freq/ nrow(mergeddata))
+count(mergeddata$income_5cat) %>% mutate(freq = freq/ nrow(mergeddata))
+
+nrow(mergeddata)
+```

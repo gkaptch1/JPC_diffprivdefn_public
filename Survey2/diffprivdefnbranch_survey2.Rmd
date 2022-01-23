@@ -1,0 +1,974 @@
+---
+ggtitle: "DiffPrivDefns-Branch12-2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(parameters)
+library(readr)
+library(dplyr)
+library(readxl)
+library(ggridges)
+library(ggplot2)
+library(RColorBrewer)
+library(gdata)
+library(Hmisc)
+library(jtools)
+library(fastDummies)
+library(corrplot)
+library(jsonlite)
+library(forcats)
+library(survey)
+library(tidyverse)
+# The following package is available at https://github.com/seankross/toffee
+library(toffee)
+library(ggstance)
+library(psy) 
+library(viridis)
+library(plotly)
+library(xtable)
+library(interplot)
+library(psych)
+library(ggeffects)
+library(srvyr)
+library(plyr)
+library(stringr)
+library(xtable)
+
+select <- dplyr::select
+mutate <- dplyr::mutate
+rename <- dplyr::rename
+```
+
+```{r loading_data}
+salarydata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey2/salary_data_min.csv")
+meddata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey2/med_data_min.csv")
+```
+
+```{r cleaning}
+salarydata = salarydata[-1,]
+salarydata = salarydata[-1,]
+meddata = meddata[-1,]
+meddata = meddata[-1,]
+
+
+salarydata = salarydata %>% filter(Finished=="True")
+meddata = meddata %>% filter(Finished=="True")
+
+salarydata=salarydata %>% rename(consent=Q3,
+                     heardOfDP=Q42,
+                     personalDefnOfDP=Q43)
+
+salarydata=salarydata %>% rename(shareData=Q6,
+                                 whyShare=Q7,
+                                 whyNotShare=Q8,
+                                 whyUnsureShare=Q9)
+
+salarydata=salarydata %>% rename(friendExpectation=`Salary Exp 1_1`)
+salarydata=salarydata %>% rename(hackExpectation=`Salary Exp 1_2`)
+salarydata=salarydata %>% rename(leExpectation=`Salary Exp 1_3`)
+salarydata=salarydata %>% rename(dataAnalystExpectation=`Salary Exp 2`)
+salarydata=salarydata %>% rename(graphsExpectation=`Salary Exp 3_1`)
+salarydata=salarydata %>% rename(shareExpectation=`Salary Exp 3_2`)
+
+salarydata = salarydata %>% rename(adv_search=Q24_1,
+                                   pdf=Q24_2,
+                                   spyware=Q24_3,
+                                   wiki=Q24_4,
+                                   cache=Q24_5,
+                                   phishing=Q24_6)
+
+salarydata = salarydata %>% rename(gender=Q15)
+salarydata = salarydata %>% rename(birthyear=Q16)
+salarydata = salarydata %>% rename(race=Q17)
+salarydata = salarydata %>% rename(race_text=Q17_6_TEXT)
+salarydata = salarydata %>% rename(education=Q18)
+salarydata = salarydata %>% rename(background=Q20)
+salarydata = salarydata %>% rename(income=Q23)
+
+
+meddata=meddata %>% rename(consent=Q3,
+                     heardOfDP=Q42,
+                     personalDefnOfDP=Q43)
+
+meddata=meddata %>% rename(shareData=Q6,
+                                 whyShare=Q7,
+                                 whyNotShare=Q8,
+                                 whyUnsureShare=Q9)
+
+meddata=meddata %>% rename(friendExpectation=`Salary Exp 1_1`)
+meddata=meddata %>% rename(hackExpectation=`Salary Exp 1_2`)
+meddata=meddata %>% rename(leExpectation=`Salary Exp 1_3`)
+meddata=meddata %>% rename(dataAnalystExpectation=`Salary Exp 2`)
+meddata=meddata %>% rename(graphsExpectation=`Salary Exp 3_1`)
+meddata=meddata %>% rename(shareExpectation=`Salary Exp 3_2`)
+
+meddata = meddata %>% rename(adv_search=Q24_1,
+                                   pdf=Q24_2,
+                                   spyware=Q24_3,
+                                   wiki=Q24_4,
+                                   cache=Q24_5,
+                                   phishing=Q24_6)
+
+meddata = meddata %>% rename(gender=Q15)
+meddata = meddata %>% rename(birthyear=Q16)
+meddata = meddata %>% rename(race=Q17)
+meddata = meddata %>% rename(race_text=Q17_6_TEXT)
+meddata = meddata %>% rename(education=Q18)
+meddata = meddata %>% rename(background=Q20)
+meddata = meddata %>% rename(income=Q23)
+
+salarydata=salarydata %>% mutate(isSalaryData = TRUE)
+salarydata=salarydata %>% mutate(oldData = FALSE)
+meddata=meddata %>% mutate(isSalaryData = FALSE)
+meddata=meddata %>% mutate(oldData = FALSE)
+
+
+
+```
+
+```{r cleaning2}
+
+salarydata=salarydata %>% mutate(definition = case_when(is.na(definition) ~ "-baseline", 
+                              str_detect(definition, "Differential privacy is the gold standard in data privacy and protection and is widely recognized as the strongest guarantee of privacy available") ~ "-unsubstantial",
+                              str_detect(definition, "Differential Privacy injects statistical noise into collected data in a way that protects privacy without significantly changing conclusions") ~ "-techniques",
+                              
+                              str_detect(definition, "Differential Privacy allows analysts to learn useful information from large amounts of data without compromising an individual's privacy") ~ "-enables",
+                              str_detect(definition, "Apple and Uber") ~ "-trust",
+                              str_detect(definition, "Differential privacy protects a user’s identity and the specifics of their data, meaning individuals incur almost no risk by joining the dataset") ~ "-risk",
+                              str_detect(definition, "disclosive") ~ "-technical",
+                              TRUE ~ "-baseline"))
+
+meddata=meddata %>% mutate(definition = case_when(is.na(definition) ~ "-baseline", 
+                              str_detect(definition, "Differential privacy is the gold standard in data privacy and protection and is widely recognized as the strongest guarantee of privacy available") ~ "-unsubstantial",
+                              str_detect(definition, "Differential Privacy injects statistical noise into collected data in a way that protects privacy without significantly changing conclusions") ~ "-techniques",
+                              
+                              str_detect(definition, "Differential Privacy allows analysts to learn useful information from large amounts of data without compromising an individual's privacy") ~ "-enables",
+                              str_detect(definition, "Apple and Uber") ~ "-trust",
+                              str_detect(definition, "Differential privacy protects a user’s identity and the specifics of their data, meaning individuals incur almost no risk by joining the dataset") ~ "-risk",
+                              str_detect(definition, "disclosive") ~ "-technical",
+                              TRUE ~ "-baseline"))
+
+salarydata=salarydata %>% mutate (adv_search = case_when(adv_search %in% 1 ~as.numeric(1),
+                               adv_search %in% 2 ~as.numeric(2),
+                               adv_search %in% 3 ~as.numeric(3),
+                               adv_search %in% 4 ~as.numeric(4),
+                               adv_search %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (pdf = case_when(pdf %in% 1 ~as.numeric(1),
+                               pdf %in% 2 ~as.numeric(2),
+                               pdf %in% 3 ~as.numeric(3),
+                               pdf %in% 4 ~as.numeric(4),
+                               pdf %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (spyware = case_when(spyware %in% 1 ~as.numeric(1),
+                               spyware %in% 2 ~as.numeric(2),
+                               spyware %in% 3 ~as.numeric(3),
+                               spyware %in% 4 ~as.numeric(4),
+                               spyware %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (cache = case_when(cache %in% 1 ~as.numeric(1),
+                               cache %in% 2 ~as.numeric(2),
+                               cache %in% 3 ~as.numeric(3),
+                               cache %in% 4 ~as.numeric(4),
+                               cache %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (phishing = case_when(phishing %in% 1 ~as.numeric(1),
+                               phishing %in% 2 ~as.numeric(2),
+                               phishing %in% 3 ~as.numeric(3),
+                               phishing %in% 4 ~as.numeric(4),
+                               phishing %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate(internetscore = (adv_search + pdf + spyware + cache + phishing)/5)
+
+meddata = meddata %>% mutate (adv_search = case_when(adv_search %in% 1 ~as.numeric(1),
+                               adv_search %in% 2 ~as.numeric(2),
+                               adv_search %in% 3 ~as.numeric(3),
+                               adv_search %in% 4 ~as.numeric(4),
+                               adv_search %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (pdf = case_when(pdf %in% 1 ~as.numeric(1),
+                               pdf %in% 2 ~as.numeric(2),
+                               pdf %in% 3 ~as.numeric(3),
+                               pdf %in% 4 ~as.numeric(4),
+                               pdf %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (spyware = case_when(spyware %in% 1 ~as.numeric(1),
+                               spyware %in% 2 ~as.numeric(2),
+                               spyware %in% 3 ~as.numeric(3),
+                               spyware %in% 4 ~as.numeric(4),
+                               spyware %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (cache = case_when(cache %in% 1 ~as.numeric(1),
+                               cache %in% 2 ~as.numeric(2),
+                               cache %in% 3 ~as.numeric(3),
+                               cache %in% 4 ~as.numeric(4),
+                               cache %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate (phishing = case_when(phishing %in% 1 ~as.numeric(1),
+                               phishing %in% 2 ~as.numeric(2),
+                               phishing %in% 3 ~as.numeric(3),
+                               phishing %in% 4 ~as.numeric(4),
+                               phishing %in% 5 ~as.numeric(5),
+                               TRUE ~as.numeric( 1))) %>%
+
+                          mutate(internetscore = (adv_search + pdf + spyware + cache + phishing)/5)
+
+salarydata=salarydata %>% mutate( woman = gender %in% c("Woman"),
+         man = gender %in% c("Man"),
+         hispanic = str_detect(race, "Hispanic"),
+         black = str_detect(race, "Black"),
+         white = str_detect(race, "White"),
+         firstNations = str_detect(race, "Indian"),
+         asian = str_detect(race, "Asian"),
+         lowSES = income <=3,
+         income50k = income <=5,
+         income_5cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-50K",
+                                 income == "$40,000 to under $50,000" ~ "30-50K",
+                                 income == "$50,000 to under $65,000" ~ "50-100K",
+                                 income == "$65,000 to under $80,000" ~ "50-100K",
+                                 income == "$80,000 to under $100,000" ~ "50-100K",
+                                 income == "$100,000 to under $125,000" ~ "100-200k",
+                                 income == "$125,000 to under $150,000" ~ "100-200k",
+                                 income ==  "$150,000 to under $200,000" ~ "100-200k",
+                                 income == "$200,000 or more" ~"200k+",
+                                 TRUE~as.character(NA)),
+         income_3cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-100K",
+                                 income == "$40,000 to under $50,000" ~ "30-100K",
+                                 income == "$50,000 to under $65,000" ~ "30-100K",
+                                 income == "$65,000 to under $80,000" ~ "30-100K",
+                                 income == "$80,000 to under $100,000" ~ "30-100K",
+                                 income == "$100,000 to under $125,000" ~ "100K+",
+                                 income == "$125,000 to under $150,000" ~ "100K+",
+                                 income ==  "$150,000 to under $200,000" ~ "100K+",
+                                 income == "$200,000 or more" ~ "100K+",
+                                 TRUE~as.character(NA)),
+         edu_3cat = relevel(factor(case_when(education %in% c("High school graduate (high school diploma or equivalent including GED)","Some high school credit, no diploma or equivalentLess than high school degree")~"HS",
+                              education %in% c("Some college but no degree","Associate's degree")~"SC",
+                              education %in% c("Bachelor's degree", "Advanced degree (e.g., Master's, doctorate)")~"BS+",
+                              TRUE~as.character(NA))), ref="HS"),
+         birthyear = as.numeric(birthyear))
+
+salarydata=salarydata %>% mutate(
+                      age = case_when(
+                        birthyear>=18 & birthyear<100 ~ birthyear,
+                        birthyear>1200 ~ 2020-as.numeric(birthyear),
+                        birthyear>800 & birthyear<1000 ~ 2020-(1000+as.numeric(birthyear)),
+                        birthyear>1000 & birthyear<1200 ~ 2020-(900+as.numeric(birthyear)),
+                        TRUE ~ birthyear ) )
+
+meddata=meddata %>% mutate( woman = gender %in% c("Woman"),
+         man = gender %in% c("Man"),
+         hispanic = str_detect(race, "Hispanic"),
+         black = str_detect(race, "Black"),
+         white = str_detect(race, "White"),
+         firstNations = str_detect(race, "Indian"),
+         asian = str_detect(race, "Asian"),
+         lowSES = income <=3,
+         income50k = income <=5,
+         income_5cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-50K",
+                                 income == "$40,000 to under $50,000" ~ "30-50K",
+                                 income == "$50,000 to under $65,000" ~ "50-100K",
+                                 income == "$65,000 to under $80,000" ~ "50-100K",
+                                 income == "$80,000 to under $100,000" ~ "50-100K",
+                                 income == "$100,000 to under $125,000" ~ "100-200k",
+                                 income == "$125,000 to under $150,000" ~ "100-200k",
+                                 income ==  "$150,000 to under $200,000" ~ "100-200k",
+                                 income == "$200,000 or more" ~"200k+",
+                                 TRUE~as.character(NA)),
+         income_3cat = case_when(income=="Less than $10,000"~"<=30K",
+                                 income=="$10,000 to under $20,000"~"<=30K",
+                                 income=="$20,000 to under $30,000"~"<=30K",
+                                 income == "$30,000 to under $40,000" ~ "30-100K",
+                                 income == "$40,000 to under $50,000" ~ "30-100K",
+                                 income == "$50,000 to under $65,000" ~ "30-100K",
+                                 income == "$65,000 to under $80,000" ~ "30-100K",
+                                 income == "$80,000 to under $100,000" ~ "30-100K",
+                                 income == "$100,000 to under $125,000" ~ "100K+",
+                                 income == "$125,000 to under $150,000" ~ "100K+",
+                                 income ==  "$150,000 to under $200,000" ~ "100K+",
+                                 income == "$200,000 or more" ~ "100K+",
+                                 TRUE~as.character(NA)),
+         edu_3cat = relevel(factor(case_when(education %in% c("High school graduate (high school diploma or equivalent including GED)","Some high school credit, no diploma or equivalentLess than high school degree")~"HS",
+                              education %in% c("Some college but no degree","Associate's degree")~"SC",
+                              education %in% c("Bachelor's degree", "Advanced degree (e.g., Master's, doctorate)")~"BS+",
+                              TRUE~as.character(NA))), ref="HS"),
+         birthyear = as.numeric(birthyear),
+         )
+
+meddata=meddata %>% mutate(
+                      age = case_when(
+                        birthyear>=18 & birthyear<100 ~ birthyear,
+                        birthyear>1200 ~ 2020-as.numeric(birthyear),
+                        birthyear>800 & birthyear<1000 ~ 2020-(1000+as.numeric(birthyear)),
+                        birthyear>1000 & birthyear<1200 ~ 2020-(900+as.numeric(birthyear)),
+                        TRUE ~ birthyear ) )
+
+```
+
+
+```{r expectationcoding}
+salarydata = salarydata %>% mutate(
+                      friendBetter = case_when(friendExpectation == "True" ~1, TRUE~0),
+                      hackBetter = case_when(hackExpectation == "False" ~1, TRUE~0),
+                      leBetter = case_when(leExpectation == "False" ~1, TRUE~0),
+                      daBetter = case_when(dataAnalystExpectation == "False" ~1, TRUE~0),
+                      graphsBetter = case_when(graphsExpectation == "False" ~1, TRUE~0),
+                      shareBetter = case_when(shareExpectation == "False" ~1, TRUE~0),
+                      friendWorse = case_when(friendExpectation == "False" ~1, TRUE~0),
+                      hackWorse = case_when(hackExpectation == "True" ~1, TRUE~0),
+                      leWorse = case_when(leExpectation == "True" ~1, TRUE~0),
+                      daWorse = case_when(dataAnalystExpectation == "True" ~1, TRUE~0),
+                      graphsWorse = case_when(graphsExpectation == "True" ~1, TRUE~0),
+                      shareWorse = case_when(shareExpectation == "True" ~1, TRUE~0),
+                      totalBetter = (friendBetter + hackBetter + leBetter + daBetter + graphsBetter + shareBetter)/6,
+                      )
+
+meddata = meddata %>% mutate(
+                      friendBetter = case_when(friendExpectation == "True" ~1, TRUE~0),
+                      hackBetter = case_when(hackExpectation == "False" ~1, TRUE~0),
+                      leBetter = case_when(leExpectation == "False" ~1, TRUE~0),
+                      daBetter = case_when(dataAnalystExpectation == "False" ~1, TRUE~0),
+                      graphsBetter = case_when(graphsExpectation == "False" ~1, TRUE~0),
+                      shareBetter = case_when(shareExpectation == "False" ~1, TRUE~0),
+                      friendWorse = case_when(friendExpectation == "False" ~1, TRUE~0),
+                      hackWorse = case_when(hackExpectation == "True" ~1, TRUE~0),
+                      leWorse = case_when(leExpectation == "True" ~1, TRUE~0),
+                      daWorse = case_when(dataAnalystExpectation == "True" ~1, TRUE~0),
+                      graphsWorse = case_when(graphsExpectation == "True" ~1, TRUE~0),
+                      shareWorse = case_when(shareExpectation == "True" ~1, TRUE~0),
+                      totalBetter = (friendBetter + hackBetter + leBetter + daBetter + graphsBetter + shareBetter)/6,
+                      )
+
+
+salarydata = salarydata %>% mutate(
+                      friendLocalCorrect = case_when(friendExpectation%in% "True" ~1, TRUE~0),
+                      hackedLocalCorrect = case_when(hackExpectation %in% "False" ~1, TRUE~0),
+                      leLocalCorrect = case_when(leExpectation %in% "False" ~1, TRUE~0),
+                      daLocalCorrect = case_when(dataAnalystExpectation %in% "False" ~1, TRUE~0),
+                      graphsLocalCorrect  = case_when(graphsExpectation %in% "False" ~1, TRUE~0),
+                      shareLocalCorrect = case_when(shareExpectation %in% "False" ~1, TRUE~0),
+                      totalLocalCorrect = (friendLocalCorrect + hackedLocalCorrect + leLocalCorrect + daLocalCorrect + graphsLocalCorrect + shareLocalCorrect)/6,
+                      
+                      friendCentralCorrect = case_when(friendExpectation%in% "False" ~1, TRUE~0),
+                      hackedCentralCorrect = case_when(hackExpectation %in% "True" ~1, TRUE~0),
+                      leCentralCorrect = case_when(leExpectation %in% "True" ~1, TRUE~0),
+                      daCentralCorrect = case_when(dataAnalystExpectation %in% "True" ~1, TRUE~0),
+                      graphsCentralCorrect  = case_when(graphsExpectation %in% "False" ~1, TRUE~0),
+                      shareCentralCorrect = case_when(shareExpectation %in% "True" ~1, TRUE~0),
+                      totalCentralCorrect = (friendCentralCorrect + hackedCentralCorrect + leCentralCorrect + daCentralCorrect + graphsCentralCorrect + shareCentralCorrect)/6,
+                      
+                      friendLocalIncorrect = case_when(friendExpectation%in% "False" ~1, TRUE~0),
+                      hackedLocalIncorrect = case_when(hackExpectation %in% "True" ~1, TRUE~0),
+                      leLocalIncorrect = case_when(leExpectation %in% "True" ~1, TRUE~0),
+                      daLocalIncorrect = case_when(dataAnalystExpectation %in% "True" ~1, TRUE~0),
+                      graphsLocalIncorrect  = case_when(graphsExpectation %in% "True" ~1, TRUE~0),
+                      shareLocalIncorrect = case_when(shareExpectation %in% "True" ~1, TRUE~0),
+                      totalLocalIncorrect = (friendLocalIncorrect + hackedLocalIncorrect + leLocalIncorrect + daLocalIncorrect + graphsLocalIncorrect + shareLocalIncorrect)/6,
+
+                      friendCentralIncorrect = case_when(friendExpectation%in% "True" ~1, TRUE~0),
+                      hackedCentralIncorrect = case_when(hackExpectation %in% "False" ~1, TRUE~0),
+                      leCentralIncorrect = case_when(leExpectation %in% "False" ~1, TRUE~0),
+                      daCentralIncorrect = case_when(dataAnalystExpectation %in% "False" ~1, TRUE~0),
+                      graphsCentralIncorrect  = case_when(graphsExpectation %in% "True" ~1, TRUE~0),
+                      shareCentralIncorrect = case_when(shareExpectation %in% "False" ~1, TRUE~0),
+                      totalCentralIncorrect = (friendCentralIncorrect + hackedCentralIncorrect + leCentralIncorrect + daCentralIncorrect + graphsCentralIncorrect + shareCentralIncorrect)/6,
+                      )
+
+meddata = meddata %>% mutate(
+                      friendLocalCorrect = case_when(friendExpectation%in% "True" ~1, TRUE~0),
+                      hackedLocalCorrect = case_when(hackExpectation %in% "False" ~1, TRUE~0),
+                      leLocalCorrect = case_when(leExpectation %in% "False" ~1, TRUE~0),
+                      daLocalCorrect = case_when(dataAnalystExpectation %in% "False" ~1, TRUE~0),
+                      graphsLocalCorrect  = case_when(graphsExpectation %in% "False" ~1, TRUE~0),
+                      shareLocalCorrect = case_when(shareExpectation %in% "False" ~1, TRUE~0),
+                      totalLocalCorrect = (friendLocalCorrect + hackedLocalCorrect + leLocalCorrect + daLocalCorrect + graphsLocalCorrect + shareLocalCorrect)/6,
+                      
+                      friendCentralCorrect = case_when(friendExpectation%in% "False" ~1, TRUE~0),
+                      hackedCentralCorrect = case_when(hackExpectation %in% "True" ~1, TRUE~0),
+                      leCentralCorrect = case_when(leExpectation %in% "True" ~1, TRUE~0),
+                      daCentralCorrect = case_when(dataAnalystExpectation %in% "True" ~1, TRUE~0),
+                      graphsCentralCorrect  = case_when(graphsExpectation %in% "False" ~1, TRUE~0),
+                      shareCentralCorrect = case_when(shareExpectation %in% "True" ~1, TRUE~0),
+                      totalCentralCorrect = (friendCentralCorrect + hackedCentralCorrect + leCentralCorrect + daCentralCorrect + graphsCentralCorrect + shareCentralCorrect)/6,
+                      
+                      friendLocalIncorrect = case_when(friendExpectation%in% "False" ~1, TRUE~0),
+                      hackedLocalIncorrect = case_when(hackExpectation %in% "True" ~1, TRUE~0),
+                      leLocalIncorrect = case_when(leExpectation %in% "True" ~1, TRUE~0),
+                      daLocalIncorrect = case_when(dataAnalystExpectation %in% "True" ~1, TRUE~0),
+                      graphsLocalIncorrect  = case_when(graphsExpectation %in% "True" ~1, TRUE~0),
+                      shareLocalIncorrect = case_when(shareExpectation %in% "True" ~1, TRUE~0),
+                      totalLocalIncorrect = (friendLocalIncorrect + hackedLocalIncorrect + leLocalIncorrect + daLocalIncorrect + graphsLocalIncorrect + shareLocalIncorrect)/6,
+
+                      friendCentralIncorrect = case_when(friendExpectation%in% "True" ~1, TRUE~0),
+                      hackedCentralIncorrect = case_when(hackExpectation %in% "False" ~1, TRUE~0),
+                      leCentralIncorrect = case_when(leExpectation %in% "False" ~1, TRUE~0),
+                      daCentralIncorrect = case_when(dataAnalystExpectation %in% "False" ~1, TRUE~0),
+                      graphsCentralIncorrect  = case_when(graphsExpectation %in% "True" ~1, TRUE~0),
+                      shareCentralIncorrect = case_when(shareExpectation %in% "False" ~1, TRUE~0),
+                      totalCentralIncorrect = (friendCentralIncorrect + hackedCentralIncorrect + leCentralIncorrect + daCentralIncorrect + graphsCentralIncorrect + shareCentralIncorrect)/6,
+                      )
+
+```
+
+```{r seperatingandmergingdatat}
+
+salarydata = salarydata %>% select(definition,
+                          heardOfDP,
+                          personalDefnOfDP,
+                          shareData,
+                          friendExpectation,
+                          hackExpectation,
+                          leExpectation,
+                          dataAnalystExpectation,
+                          graphsExpectation,
+                          shareExpectation,
+                          friendBetter,
+                          hackBetter,
+                          leBetter,
+                          daBetter,
+                          graphsBetter,
+                          shareBetter,
+                          friendWorse,
+                          hackWorse,
+                          leWorse,
+                          daWorse,
+                          graphsWorse,
+                          shareWorse,
+                          friendLocalCorrect,
+                          hackedLocalCorrect,
+                          leLocalCorrect,
+                          daLocalCorrect,
+                          graphsLocalCorrect,
+                          shareLocalCorrect,
+                          friendCentralCorrect,
+                          hackedCentralCorrect,
+                          leCentralCorrect,
+                          daCentralCorrect,
+                          graphsCentralCorrect,
+                          shareCentralCorrect,
+                          totalBetter,
+                          totalLocalCorrect,
+                          totalCentralCorrect,
+                          friendLocalIncorrect,
+                          hackedLocalIncorrect,
+                          leLocalIncorrect,
+                          daLocalIncorrect,
+                          graphsLocalIncorrect ,
+                          shareLocalIncorrect,
+                          totalLocalIncorrect,
+                          friendCentralIncorrect,
+                          hackedCentralIncorrect,
+                          leCentralIncorrect,
+                          daCentralIncorrect,
+                          graphsCentralIncorrect ,
+                          shareCentralIncorrect,
+                          totalCentralIncorrect,
+                          oldData,
+                          internetscore,
+                          gender,
+                          race,
+                          education,
+                          edu_3cat,
+                          income,
+                          income_5cat, 
+                          income_3cat,
+                          woman, 
+                          black, 
+                          white,
+                          hispanic,
+                          asian,
+                          firstNations,
+                          lowSES, 
+                          age,
+                          isSalaryData)
+
+meddata = meddata %>% select(definition,
+                          heardOfDP,
+                          personalDefnOfDP,
+                          shareData,
+                          friendExpectation,
+                          hackExpectation,
+                          leExpectation,
+                          dataAnalystExpectation,
+                          graphsExpectation,
+                          shareExpectation,
+                          friendBetter,
+                          hackBetter,
+                          leBetter,
+                          daBetter,
+                          graphsBetter,
+                          shareBetter,
+                          friendWorse,
+                          hackWorse,
+                          leWorse,
+                          daWorse,
+                          graphsWorse,
+                          shareWorse,
+                          friendLocalCorrect,
+                          hackedLocalCorrect,
+                          leLocalCorrect,
+                          daLocalCorrect,
+                          graphsLocalCorrect,
+                          shareLocalCorrect,
+                          friendCentralCorrect,
+                          hackedCentralCorrect,
+                          leCentralCorrect,
+                          daCentralCorrect,
+                          graphsCentralCorrect,
+                          shareCentralCorrect,
+                          totalBetter,
+                          totalLocalCorrect,
+                          totalCentralCorrect,
+                          friendLocalIncorrect,
+                          hackedLocalIncorrect,
+                          leLocalIncorrect,
+                          daLocalIncorrect,
+                          graphsLocalIncorrect ,
+                          shareLocalIncorrect,
+                          totalLocalIncorrect,
+                          friendCentralIncorrect,
+                          hackedCentralIncorrect,
+                          leCentralIncorrect,
+                          daCentralIncorrect,
+                          graphsCentralIncorrect ,
+                          shareCentralIncorrect,
+                          totalCentralIncorrect,
+                          oldData,
+                          internetscore,
+                          gender,
+                          race,
+                          education,
+                          edu_3cat,
+                          income,
+                          income_5cat,
+                          income_3cat,
+                          woman, 
+                          black, 
+                          white,
+                          asian,
+                          hispanic,
+                          firstNations,
+                          lowSES, 
+                          age,
+                          isSalaryData)
+
+mergeddata = rbind(salarydata, meddata)
+
+mergeddata = mergeddata %>% mutate(friendExpectation = case_when(is.na(friendExpectation) ~ "I don't know", TRUE ~ friendExpectation))
+mergeddata = mergeddata %>% mutate(hackExpectation = case_when(is.na(hackExpectation) ~ "I don't know", TRUE ~ hackExpectation))
+mergeddata = mergeddata %>% mutate(leExpectation = case_when(is.na(leExpectation) ~ "I don't know", TRUE ~ leExpectation))
+mergeddata = mergeddata %>% mutate(dataAnalystExpectation = case_when(is.na(dataAnalystExpectation) ~ "I don't know", TRUE ~ dataAnalystExpectation))
+
+mergeddata = mergeddata %>% filter(!(friendExpectation == "I don't know" & hackExpectation == "I don't know" & leExpectation == "I don't know" & dataAnalystExpectation == "I don't know" &  graphsExpectation == "I don't know" & shareExpectation == "I don't know"))
+
+writetables = FALSE
+writetablespath = "~/Repos/JPC_diffprivdefn_public/results/Survey2/tables/"
+writeimagesspath = "~/Repos/JPC_diffprivdefn_public/results/Survey2/images/"
+
+```
+
+```{r raisingexpectations}
+
+# Generating results for Table 4
+
+factor(mergeddata$definition, labels=c("Definition: Baseline", "Definition: Enables","Definition: Unsubstantial","Definition: Risk","Definition: Technical", "Definition: Techniques", "Definition: Trust"))
+factor(mergeddata$isSalaryData, labels=c("Salary Scenario:"))
+factor(mergeddata$internetscore, labels=c("Internet Score"))
+
+
+mergedata_friendanswered = mergeddata %>% filter(friendExpectation%in%c("True","False", "I don't know"))
+#nrow(mergedata_friendanswered)
+
+merged_friend_better_by_defn = glm(friendBetter~
+                      #definition  + woman + white + internetscore + isSalaryData,
+                      definition + internetscore + isSalaryData,
+                      data=mergedata_friendanswered,
+                      family=binomial(),)
+toffee_tbl(merged_friend_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_friend_better_by_defn)), file =paste(writetablespath,"friendbetter_by_defn.tex",sep="") )
+}
+
+mergeddata_hackanswered = mergeddata %>% filter(hackExpectation%in%c("True","False", "I don't know"))
+
+merged_hack_better_by_defn = glm((hackBetter)~
+                      #definition  + woman + white + internetscore + isSalaryData,
+                      definition + internetscore + isSalaryData,
+                      data=mergeddata_hackanswered,
+                      family=binomial(),)
+toffee_tbl(merged_hack_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_hack_better_by_defn)), file =paste(writetablespath,"hackbetter_by_defn.tex",sep="") )
+}
+
+mergeddata_lebanswered = mergeddata %>% filter(leExpectation%in%c("True","False", "I don't know"))
+
+merged_le_better_by_defn = glm((leBetter)~
+                      #definition  + woman + white +  internetscore + isSalaryData,
+                      definition + internetscore + isSalaryData,
+                      data=mergeddata_lebanswered,
+                      family=binomial(),)
+toffee_tbl(merged_le_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_le_better_by_defn)), file =paste(writetablespath,"lebetter_by_defn.tex",sep="") )
+}
+
+mergeddata_daanswered = mergeddata %>% filter(dataAnalystExpectation%in%c("True","False", "I don't know"))
+
+merged_da_better_by_defn = glm((daBetter)~
+                      #definition  + woman + white + internetscore + isSalaryData,
+                      definition + internetscore + isSalaryData,
+                      data=mergeddata_daanswered,
+                      family=binomial(),)
+toffee_tbl(merged_da_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_da_better_by_defn)), file =paste(writetablespath,"dabetter_by_defn.tex",sep="") )
+}
+
+mergeddata_graphsanswered = mergeddata %>% filter(graphsExpectation%in%c("True","False", "I don't know"))
+
+merged_graphs_better_by_defn = glm((graphsBetter)~
+                      #definition  + woman + white + internetscore + isSalaryData,
+                      definition + internetscore + isSalaryData,
+                      data=mergeddata_graphsanswered,
+                      family=binomial(),)
+toffee_tbl(merged_graphs_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_graphs_better_by_defn)), file =paste(writetablespath,"graphsbetter_by_defn.tex",sep="") )
+}
+
+mergeddata_shareanswered = mergeddata %>% filter(shareExpectation%in%c("True","False", "I don't know"))
+
+merged_share_better_by_defn = glm((shareBetter)~
+                      #definition  + woman + white + internetscore + isSalaryData,
+                      definition + internetscore + isSalaryData,
+                      data=mergeddata_shareanswered,
+                      family=binomial(),)
+toffee_tbl(merged_share_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_share_better_by_defn)), file =paste(writetablespath,"sharingbetter_by_defn.tex",sep="") )
+}
+
+models = list(merged_hack_better_by_defn, merged_le_better_by_defn, merged_friend_better_by_defn, merged_da_better_by_defn, merged_graphs_better_by_defn, merged_share_better_by_defn)
+models1 = models %>%  map_dfr(model_parameters) %>% filter(!Parameter%in%c("(Intercept)")) %>% mutate(p = p.adjust(p, method="BH"))
+models2 = models %>%  map_dfr(model_parameters) %>%  mutate(p = p.adjust(p, method="BH")) %>% filter(!Parameter%in%c("(Intercept)"))
+modelframe = data.frame(models1)
+myvars = c("Parameter", "CI_low", "CI_high", "z", "p")
+modelframe = modelframe[myvars] 
+fun = exp
+modelframe = modelframe %>%  mutate(z = fun(z), CI_low = fun(CI_low), CI_high = fun(CI_high))
+
+
+plot_summs(models, model.names = list("Hack", "Techniques", "Enables", "Trust", "Risk", "Technical"), legend.title = "Disclosure")
+
+```
+
+
+```{r sharebydefinition}
+
+# Generating results for Table 5 
+
+mergeddata_shareDataAnswered = mergeddata %>% filter(shareData%in%c("Yes", "No", "I’m not sure"))
+
+mergeddata_shareDataAnswered = mergeddata_shareDataAnswered %>% mutate(defnPresent = !(definition %in% c("-baseline")))
+
+merged_share_if_defn = glm(shareData%in%c("Yes")~
+                      #definition  + internetscore  + woman + white + isSalaryData,
+                      defnPresent  + internetscore  + isSalaryData, 
+                      data=mergeddata_shareDataAnswered,
+                      family=binomial(),)
+toffee_tbl(merged_share_if_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_share_if_defn)), file =paste(writetablespath,"sharedata_if_defn.tex",sep="") )
+}
+
+merged_share_by_defn = glm(shareData%in%c("Yes")~
+                      #definition  + internetscore  + woman + white + isSalaryData,
+                      definition  + internetscore  + isSalaryData, 
+                      data=mergeddata_shareDataAnswered,
+                      family=binomial(),)
+toffee_tbl(merged_share_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_share_by_defn)), file =paste(writetablespath,"sharedata_by_defn.tex",sep="") )
+}
+
+merged_share_by_better = glm(shareData%in%c("Yes")~
+                      #friendBetter + hackBetter + leBetter + daBetter + graphsBetter + shareBetter +  internetscore  + woman + white + isSalaryData,
+                      friendBetter + hackBetter + leBetter + daBetter + graphsBetter + shareBetter + internetscore+ isSalaryData, 
+                      data=mergeddata_shareDataAnswered,
+                      family=binomial(),)
+toffee_tbl(merged_share_by_better)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_share_by_better)), file =paste(writetablespath,"sharedata_by_better.tex",sep="") )
+}
+
+plot_summs(merged_share_by_defn, levels="-enables", labels=list(": Enables"))
+
+```
+
+
+```{r correctingexpectations}
+
+# Generate results (and the figures itself) for Figures 2a and 2b
+
+merged_friend_better_by_defn = glm(friendLocalCorrect~
+                      definition  + internetscore + isSalaryData,
+                      data=mergedata_friendanswered,
+                      family=binomial(),)
+toffee_tbl(merged_friend_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_friend_better_by_defn)), file =paste(writetablespath,"correct_local_friend_by_defn.tex",sep="") )
+}
+
+
+merged_hack_better_by_defn = glm((hackedLocalCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_hackanswered,
+                      family=binomial(),)
+toffee_tbl(merged_hack_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_hack_better_by_defn)), file =paste(writetablespath,"correct_local_hack_by_defn.tex",sep="") )
+}
+
+merged_le_better_by_defn = glm((leLocalCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_lebanswered,
+                      family=binomial(),)
+toffee_tbl(merged_le_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_le_better_by_defn)), file =paste(writetablespath,"correct_local_le_by_defn.tex",sep="") )
+}
+
+merged_da_better_by_defn = glm((daLocalCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_daanswered,
+                      family=binomial(),)
+toffee_tbl(merged_da_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_da_better_by_defn)), file =paste(writetablespath,"correct_local_da_by_defn.tex",sep="") )
+}
+
+merged_graphs_better_by_defn = glm((graphsLocalCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_graphsanswered,
+                      family=binomial(),)
+toffee_tbl(merged_graphs_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_graphs_better_by_defn)), file =paste(writetablespath,"correct_local_graphs_by_defn.tex",sep="") )
+}
+
+merged_share_better_by_defn = glm((shareLocalCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_shareanswered,
+                      family=binomial(),)
+toffee_tbl(merged_share_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_share_better_by_defn)), file =paste(writetablespath,"correct_local_share_by_defn.tex",sep="") )
+}
+
+merged_friend_better_by_defn = glm(friendCentralCorrect~
+                      definition  + internetscore + isSalaryData,
+                      data=mergedata_friendanswered,
+                      family=binomial(),)
+toffee_tbl(merged_friend_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_friend_better_by_defn)), file =paste(writetablespath,"correct_central_friend_by_defn.tex",sep="") )
+}
+
+
+merged_hack_better_by_defn = glm((hackedCentralCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_hackanswered,
+                      family=binomial(),)
+toffee_tbl(merged_hack_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_hack_better_by_defn)), file =paste(writetablespath,"correct_central_hack_by_defn.tex",sep="") )
+}
+
+merged_le_better_by_defn = glm((leCentralCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_lebanswered,
+                      family=binomial(),)
+toffee_tbl(merged_le_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_le_better_by_defn)), file =paste(writetablespath,"correct_central_le_by_defn.tex",sep="") )
+}
+
+merged_da_better_by_defn = glm((daCentralCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_daanswered,
+                      family=binomial(),)
+toffee_tbl(merged_da_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_da_better_by_defn)), file =paste(writetablespath,"correct_central_da_by_defn.tex",sep="") )
+}
+
+merged_graphs_better_by_defn = glm((graphsCentralCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_graphsanswered,
+                      family=binomial(),)
+toffee_tbl(merged_graphs_better_by_defn)
+
+if(writetables) {
+  print(xtable(toffee_tbl(merged_graphs_better_by_defn)), file =paste(writetablespath,"correct_central_graphs_by_defn.tex",sep="") )
+}
+
+merged_share_better_by_defn = glm((shareCentralCorrect)~
+                      definition  + internetscore + isSalaryData,
+                      data=mergeddata_shareanswered,
+                      family=binomial(),)
+toffee_tbl(merged_share_better_by_defn)
+if(writetables) {
+  print(xtable(toffee_tbl(merged_share_better_by_defn)), file =paste(writetablespath,"correct_central_share_by_defn.tex",sep="") )
+}
+```
+```{r aggragating}
+
+totalsMean <- aggregate(list(totalBetter=mergeddata$totalBetter, totalLocalCorrect=mergeddata$totalLocalCorrect, totalCentralCorrect=mergeddata$totalCentralCorrect,totalLocalIncorrect=mergeddata$totalLocalIncorrect, totalCentralIncorrect=mergeddata$totalCentralIncorrect), list(definition=mergeddata$definition), mean)
+
+totalsMedian <- aggregate(list(totalBetter=mergeddata$totalBetter, totalLocalCorrect=mergeddata$totalLocalCorrect, totalCentralCorrect=mergeddata$totalCentralCorrect,totalLocalIncorrect=mergeddata$totalLocalIncorrect, totalCentralIncorrect=mergeddata$totalCentralIncorrect), list(definition=mergeddata$definition), median)
+
+totalsSum <- aggregate(list(totalBetter=mergeddata$totalBetter, totalLocalCorrect=mergeddata$totalLocalCorrect, totalCentralCorrect=mergeddata$totalCentralCorrect,totalLocalIncorrect=mergeddata$totalLocalIncorrect, totalCentralIncorrect=mergeddata$totalCentralIncorrect), list(definition=mergeddata$definition), sum)
+
+
+mergeddata = mergeddata %>% mutate(definition = case_when(definition=="-baseline"~ "Control",
+                                                          definition=="-technical"~ "Technical",
+                                                          definition=="-risk"~ "Risk",
+                                                          definition=="-trust"~ "Trust",
+                                                          definition=="-enables"~ "Enables",
+                                                          definition=="-techniques"~ "Techniques",
+                                                          definition=="-unsubstantial"~ "Unsubstantial",))
+
+mergeddata$definition <- factor(mergeddata$definition, levels=c("Control", "Technical", "Risk", "Trust", "Enables", "Techniques","Unsubstantial") )
+
+
+trustdata = mergeddata$totalLocalCorrect[mergeddata$definition=="Trust"]
+techniquesdata = mergeddata$totalLocalCorrect[mergeddata$definition=="Techniques"]
+technicaldata = mergeddata$totalLocalCorrect[mergeddata$definition=="Technical"]
+riskdata = mergeddata$totalLocalCorrect[mergeddata$definition=="Risk"]
+unsubstantialdata = mergeddata$totalLocalCorrect[mergeddata$definition=="Unsubstantial"]
+enablesdata = mergeddata$totalLocalCorrect[mergeddata$definition=="Enables"]
+baselinedata = mergeddata$totalLocalCorrect[mergeddata$definition=="Control"]
+lowercibound = data.frame(c(confint(lm(unsubstantialdata~1))[1,1], confint(lm(techniquesdata~1))[1,1], confint(lm(enablesdata~1))[1,1], confint(lm(trustdata~1))[1,1], confint(lm(riskdata~1))[1,1], confint(lm(technicaldata~1))[1,1], confint(lm(baselinedata~1))[1,1]),c(7,6,5,4,3,2,1),c(7.9,6.65,5.85,4.85,3.8,2.8,1.9))
+names(lowercibound)[1] <- "x"
+names(lowercibound)[2] <- "ymin"
+names(lowercibound)[3] <- "ymax"
+highercibound = data.frame(c(confint(lm(unsubstantialdata~1))[1,2], confint(lm(techniquesdata~1))[1,2], confint(lm(enablesdata~1))[1,2], confint(lm(trustdata~1))[1,2], confint(lm(riskdata~1))[1,2], confint(lm(technicaldata~1))[1,2], confint(lm(baselinedata~1))[1,2]),c(7,6,5,4,3,2,1),c(7.8,6.6,5.75,4.65,3.7,2.6,1.7))
+names(highercibound)[1] <- "x"
+names(highercibound)[2] <- "ymin"
+names(highercibound)[3] <- "ymax"
+
+
+localCorrectPlot <- ggplot(data = mergeddata, aes(y = definition, x = totalLocalCorrect, fill=definition)) + geom_density_ridges(scale = 1.25, alpha =.7,quantile_lines=TRUE, quantile_fun=function(x,...)mean(x)) + theme_ridges()  +xlim(0,1)+ geom_segment( inherit.aes = FALSE, data = lowercibound, aes(x = x, y = ymin, xend = x,  yend = ymax), linetype=2) + geom_segment( inherit.aes = FALSE, data = highercibound, aes(x = x, y = ymin, xend = x,  yend = ymax), linetype=2) + ggtitle("Percent Of Expectations Correct By Definition (Local)") + ylab("DP Description") + xlab("Percent Correct") + theme(legend.position = "none", axis.title.x = element_text(hjust=0.5), axis.title.y = element_text(hjust = 0.5))
+print(localCorrectPlot)
+if(writetables) {
+  ggsave(paste(writeimagesspath,"distribution_localcorrect.pdf",sep=""), plot=localCorrectPlot, device=cairo_pdf)
+}
+
+trustdata = mergeddata$totalCentralCorrect[mergeddata$definition=="Trust"]
+techniquesdata = mergeddata$totalCentralCorrect[mergeddata$definition=="Techniques"]
+technicaldata = mergeddata$totalCentralCorrect[mergeddata$definition=="Technical"]
+riskdata = mergeddata$totalCentralCorrect[mergeddata$definition=="Risk"]
+unsubstantialdata = mergeddata$totalCentralCorrect[mergeddata$definition=="Unsubstantial"]
+enablesdata = mergeddata$totalCentralCorrect[mergeddata$definition=="Enables"]
+baselinedata = mergeddata$totalCentralCorrect[mergeddata$definition=="Control"]
+lowercibound = data.frame(c(confint(lm(unsubstantialdata~1))[1,1], confint(lm(techniquesdata~1))[1,1], confint(lm(enablesdata~1))[1,1], confint(lm(trustdata~1))[1,1], confint(lm(riskdata~1))[1,1], confint(lm(technicaldata~1))[1,1], confint(lm(baselinedata~1))[1,1]),c(7,6,5,4,3,2,1),c(8.1,6.8,5.95,4.8,3.9,2.65,1.9))
+names(lowercibound)[1] <- "x"
+names(lowercibound)[2] <- "ymin"
+names(lowercibound)[3] <- "ymax"
+highercibound = data.frame(c(confint(lm(unsubstantialdata~1))[1,2], confint(lm(techniquesdata~1))[1,2], confint(lm(enablesdata~1))[1,2], confint(lm(trustdata~1))[1,2], confint(lm(riskdata~1))[1,2], confint(lm(technicaldata~1))[1,2], confint(lm(baselinedata~1))[1,2]),c(7,6,5,4,3,2,1),c(8,7,5.96,4.9,3.9,2.6,2))
+names(highercibound)[1] <- "x"
+names(highercibound)[2] <- "ymin"
+names(highercibound)[3] <- "ymax"
+
+centralCorrectPlot <- ggplot(data = mergeddata, aes(y = definition, x = totalCentralCorrect, fill=definition)) + geom_density_ridges(scale = 1.25, alpha =.7,quantile_lines=TRUE, quantile_fun=function(x,...)mean(x)) +  theme_ridges() + theme(legend.position = "none") +xlim(0,1)+ geom_segment( inherit.aes = FALSE, data = lowercibound, aes(x = x, y = ymin, xend = x,  yend = ymax), linetype=2) + geom_segment( inherit.aes = FALSE, data = highercibound, aes(x = x, y = ymin, xend = x,  yend = ymax), linetype=2) +ggtitle("Percent Of Expectations Correct By Definition (Central)") + ylab("DP Description") + xlab("Percent Correct") + theme(legend.position = "none", axis.title.x = element_text(hjust=0.5), axis.title.y = element_text(hjust = 0.5))
+print(centralCorrectPlot)
+if(writetables) {
+  ggsave(centralCorrectPlot, paste(writeimagesspath,"distribution_centralcorrect.pdf",sep=""), device=cairo_pdf)
+}
+```
+
+```{r demographics}
+
+# Generating results for Table 6 (Appendix demographics breakdown)
+
+racedata <- mergeddata %>% select(race, white, black, asian, firstNations, hispanic)
+sum(racedata$white)/nrow(racedata)
+sum(racedata$black)/nrow(racedata)
+sum(racedata$asian)/nrow(racedata)
+sum(racedata$firstNations)/nrow(racedata)
+sum(racedata$hispanic)/nrow(racedata)
+
+agedata = mergeddata %>% select(age) %>% filter(!is.na(age))
+
+mean(agedata$age)
+sd(agedata$age)
+
+incomedata = mergeddata %>% select(income)
+incomedata = incomedata %>% mutate(income = case_when(
+                                  income=="Less than $10,000"~5000,
+                                  income=="$10,000 to under $20,000"~15000,
+                                  income=="$20,000 to under $30,000"~25000,
+                                  income == "$30,000 to under $40,000" ~ 35000,
+                                  income == "$40,000 to under $50,000" ~ 45000,
+                                  income == "$50,000 to under $65,000" ~ 57500,
+                                  income == "$65,000 to under $80,000" ~ 72500,
+                                  income == "$80,000 to under $100,000" ~ 90000,
+                                  income == "$100,000 to under $125,000" ~ 112500,
+                                  income == "$125,000 to under $150,000" ~ 137500,
+                                  income ==  "$150,000 to under $200,000" ~ 175000,
+                                  income == "$200,000 or more" ~200000,
+                                  TRUE ~ 0))
+mean(incomedata$income)
+sd(incomedata$income)
+
+mean(mergeddata$internetscore)
+sd(mergeddata$internetscore)
+
+count(mergeddata$gender) %>% mutate(freq = freq/nrow(mergeddata))
+count(mergeddata$education) %>% mutate(freq = freq/ nrow(mergeddata))
+count(mergeddata$edu_3cat) %>% mutate(freq = freq/ nrow(mergeddata))
+count(mergeddata$income) %>% mutate(freq = freq/ nrow(mergeddata))
+count(mergeddata$income_5cat) %>% mutate(freq = freq/ nrow(mergeddata))
+
+nrow(mergeddata)
+```

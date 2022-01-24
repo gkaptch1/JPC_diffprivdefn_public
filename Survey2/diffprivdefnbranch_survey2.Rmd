@@ -5,36 +5,36 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-library(parameters)
-library(readr)
-library(dplyr)
-library(readxl)
-library(ggridges)
-library(ggplot2)
-library(RColorBrewer)
-library(gdata)
-library(Hmisc)
-library(jtools)
-library(fastDummies)
-library(corrplot)
-library(jsonlite)
-library(forcats)
-library(survey)
-library(tidyverse)
+require(parameters)
+require(readr)
+require(dplyr)
+require(readxl)
+require(ggridges)
+require(ggplot2)
+require(RColorBrewer)
+require(gdata)
+require(Hmisc)
+require(jtools)
+require(fastDummies)
+require(corrplot)
+require(jsonlite)
+require(forcats)
+require(survey)
+require(tidyverse)
 # The following package is available at https://github.com/seankross/toffee
-library(toffee)
-library(ggstance)
-library(psy) 
-library(viridis)
-library(plotly)
-library(xtable)
-library(interplot)
-library(psych)
-library(ggeffects)
-library(srvyr)
-library(plyr)
-library(stringr)
-library(xtable)
+require(toffee)
+require(ggstance)
+require(psy)
+require(viridis)
+require(plotly)
+require(xtable)
+require(interplot)
+require(psych)
+require(ggeffects)
+require(srvyr)
+require(plyr)
+require(stringr)
+require(xtable)
 
 select <- dplyr::select
 mutate <- dplyr::mutate
@@ -42,8 +42,8 @@ rename <- dplyr::rename
 ```
 
 ```{r loading_data}
-salarydata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey2/salary_data_min.csv")
-meddata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey2/med_data_min.csv")
+salarydata = read_csv("./salary_data_min.csv")
+meddata = read_csv("./med_data_min.csv")
 ```
 
 ```{r cleaning}
@@ -582,8 +582,8 @@ mergeddata = mergeddata %>% mutate(dataAnalystExpectation = case_when(is.na(data
 mergeddata = mergeddata %>% filter(!(friendExpectation == "I don't know" & hackExpectation == "I don't know" & leExpectation == "I don't know" & dataAnalystExpectation == "I don't know" &  graphsExpectation == "I don't know" & shareExpectation == "I don't know"))
 
 writetables = FALSE
-writetablespath = "~/Repos/JPC_diffprivdefn_public/results/Survey2/tables/"
-writeimagesspath = "~/Repos/JPC_diffprivdefn_public/results/Survey2/images/"
+writetablespath = "../results/Survey2/tables/"
+writeimagesspath = "../results/Survey2/images/"
 
 ```
 

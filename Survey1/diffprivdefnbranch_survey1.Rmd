@@ -5,37 +5,37 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-library(readr)
-library(dplyr)
-library(readxl)
-library(ggplot2)
-library(RColorBrewer)
-library(gdata)
-library(Hmisc)
-library(jtools)
-library(devtools)
-library(fastDummies)
-library(corrplot)
-library(Rfast)
-library(jsonlite)
-library(forcats)
-library(survey)
-library(tidyverse)
+require(readr)
+require(dplyr)
+require(readxl)
+require(ggplot2)
+require(RColorBrewer)
+require(gdata)
+require(Hmisc)
+require(jtools)
+require(devtools)
+require(fastDummies)
+require(corrplot)
+require(Rfast)
+require(jsonlite)
+require(forcats)
+require(survey)
+require(tidyverse)
 # The following package is available at https://github.com/seankross/toffee
-library(toffee)
-library(ggstance)
-library(psy) 
-library(viridis)
-library(plotly)
-library(xtable)
-library(interplot)
-library(psych)
-library(ggeffects)
-library(srvyr)
-library(plyr)
-library(stringr)
-library(xtable)
-library(knitr)
+require(toffee)
+require(ggstance)
+require(psy)
+require(viridis)
+require(plotly)
+require(xtable)
+require(interplot)
+require(psych)
+require(ggeffects)
+require(srvyr)
+require(plyr)
+require(stringr)
+require(xtable)
+require(knitr)
 
 select <- dplyr::select
 mutate <- dplyr::mutate
@@ -43,8 +43,8 @@ rename <- dplyr::rename
 ```
 
 ```{r loading_data}
-salarydata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey1/salary_data_min.csv")
-meddata = read_csv("~/Repos/JPC_diffprivdefn_public/Survey1/med_data_min.csv")
+salarydata = read_csv("./salary_data_min.csv")
+meddata = read_csv("./med_data_min.csv")
 ```
 
 ```{r cleaning}
@@ -468,7 +468,7 @@ mergeddata <- within(mergeddata, `graph-risk` <- relevel(as.factor(`graph-risk`)
 mergeddata <- within(mergeddata, `share-risk` <- relevel(as.factor(`share-risk`), ref="DontCare"))
 
 writetables = FALSE
-writetablespath = "~/Repos/~/Repos/JPC_diffprivdefn_public/results/Survey1/tables/"
+writetablespath = "../results/Survey1/tables/"
 
 ```
 

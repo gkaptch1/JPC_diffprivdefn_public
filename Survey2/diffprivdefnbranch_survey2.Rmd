@@ -923,7 +923,7 @@ names(highercibound)[3] <- "ymax"
 centralCorrectPlot <- ggplot(data = mergeddata, aes(y = definition, x = totalCentralCorrect, fill=definition)) + geom_density_ridges(scale = 1.25, alpha =.7,quantile_lines=TRUE, quantile_fun=function(x,...)mean(x)) +  theme_ridges() + theme(legend.position = "none") +xlim(0,1)+ geom_segment( inherit.aes = FALSE, data = lowercibound, aes(x = x, y = ymin, xend = x,  yend = ymax), linetype=2) + geom_segment( inherit.aes = FALSE, data = highercibound, aes(x = x, y = ymin, xend = x,  yend = ymax), linetype=2) +ggtitle("Percent Of Expectations Correct By Definition (Central)") + ylab("DP Description") + xlab("Percent Correct") + theme(legend.position = "none", axis.title.x = element_text(hjust=0.5), axis.title.y = element_text(hjust = 0.5))
 print(centralCorrectPlot)
 if(writetables) {
-  ggsave(centralCorrectPlot, paste(writeimagesspath,"distribution_centralcorrect.pdf",sep=""), device=cairo_pdf)
+  ggsave(paste(writeimagesspath,"distribution_centralcorrect.pdf",sep=""), plot=centralCorrectPlot, device=cairo_pdf)
 }
 ```
 
